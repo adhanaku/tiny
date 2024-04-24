@@ -18,8 +18,10 @@ import matplotlib.pyplot as plt
 # y_pred contains the outputs of the network for the validation data
 # labels are the correct answers
 def calculate_accuracy(y_pred, labels):
-    y_pred_label = np.argmax(y_pred, axis=1)
-    correct = np.sum(labels == y_pred_label)
+    #y_pred_label = np.argmax(y_pred, axis=0)
+    #print(y_pred)
+    #print(labels)
+    correct = np.sum(labels == y_pred)
     accuracy = 100 * correct / len(y_pred)
     print(f"Overall accuracy = {accuracy:2.1f}")
     return accuracy
