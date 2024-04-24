@@ -243,10 +243,17 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
 
-  splits = ['train', 'test', 'validation']
-  (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
-                                                data_dir=Flags.data_dir, with_info=True)
-
+  splits = ['train', 'test']
+  #(ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
+  #                                              data_dir=Flags.data_dir, with_info=True)
+   
+  (ds_train, ds_test), ds_info = tfds.load('speech_commands', split=splits, 
+                                                data_dir=Flags.data_dir, with_info=True) 
+                          
+                                                               
+  #(ds_train, ds_test, ds_val), ds_info = tfds.load('huggingface:speech_commands/v0.01', split=splits, 
+  #                                              data_dir=Flags.data_dir, with_info=True)
+  
   if val_cal_subset:  # only return the subset of val set used for quantization calibration
     with open("quant_cal_idxs.txt") as fpi:
       cal_indices = [int(line) for line in fpi]
@@ -255,6 +262,7 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     count = 0  # count will be the index into the validation set.
     val_sub_audio = []
     val_sub_labels = []
+    '''
     for d in ds_val:
       if count in cal_indices:          # this is one of the calibration inpus
         new_audio = d['audio'].numpy()  # so add it to a stack of tensors 
@@ -266,18 +274,19 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     # and create a new dataset for just the calibration inputs.
     ds_val = tf.data.Dataset.from_tensor_slices({"audio": val_sub_audio,
                                                  "label": val_sub_labels})
+    '''
 
   if Flags.num_train_samples != -1:
     ds_train = ds_train.take(Flags.num_train_samples)
-  if Flags.num_val_samples != -1:
-    ds_val = ds_val.take(Flags.num_val_samples)
+  #if Flags.num_val_samples != -1:
+  #  ds_val = ds_val.take(Flags.num_val_samples)
   if Flags.num_test_samples != -1:
     ds_test = ds_test.take(Flags.num_test_samples)
     
   if get_waves:
     ds_train = ds_train.map(cast_and_pad)
     ds_test  =  ds_test.map(cast_and_pad)
-    ds_val   =   ds_val.map(cast_and_pad)
+    #ds_val   =   ds_val.map(cast_and_pad)
   else:
     # extract spectral features and add background noise
     ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
@@ -286,21 +295,22 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
-                                                      background_data=background_data),
-                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    #ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
+    #                                                  background_data=background_data),
+    #                       num_parallel_calls=tf.data.experimental.AUTOTUNE)
     # change output from a dictionary to a feature,label tuple
     ds_train = ds_train.map(convert_dataset)
     ds_test = ds_test.map(convert_dataset)
-    ds_val = ds_val.map(convert_dataset)
+    #ds_val = ds_val.map(convert_dataset)
 
   # Now that we've acquired the preprocessed data, either by processing or loading,
-  ds_train = ds_train.batch(Flags.batch_size)
-  ds_test = ds_test.batch(Flags.batch_size)  
-  ds_val = ds_val.batch(Flags.batch_size)
+  #ds_train = ds_train.batch(Flags.batch_size)
+  #ds_test = ds_test.batch(Flags.batch_size)  
+  #print(len(ds_test))
+  #ds_val = ds_val.batch(Flags.batch_size)
   
-  return ds_train, ds_test, ds_val
-
+  #return ds  
+  return ds_train, ds_test
 
 if __name__ == '__main__':
   Flags, unparsed = kws_util.parse_command()
